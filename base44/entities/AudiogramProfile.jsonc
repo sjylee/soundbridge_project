@@ -1,0 +1,96 @@
+{
+  "name": "AudiogramProfile",
+  "type": "object",
+  "properties": {
+    "profile_name": {
+      "type": "string",
+      "title": "Profile Name"
+    },
+    "left_ear": {
+      "type": "object",
+      "title": "Left Ear Thresholds",
+      "properties": {
+        "hz_250": {
+          "type": "number",
+          "title": "250 Hz"
+        },
+        "hz_500": {
+          "type": "number",
+          "title": "500 Hz"
+        },
+        "hz_1000": {
+          "type": "number",
+          "title": "1000 Hz"
+        },
+        "hz_2000": {
+          "type": "number",
+          "title": "2000 Hz"
+        },
+        "hz_3000": {
+          "type": "number",
+          "title": "3000 Hz"
+        },
+        "hz_4000": {
+          "type": "number",
+          "title": "4000 Hz"
+        },
+        "hz_6000": {
+          "type": "number",
+          "title": "6000 Hz"
+        },
+        "hz_8000": {
+          "type": "number",
+          "title": "8000 Hz"
+        }
+      }
+    },
+    "right_ear": {
+      "type": "object",
+      "title": "Right Ear Thresholds",
+      "properties": {
+        "hz_250": {
+          "type": "number",
+          "title": "250 Hz"
+        },
+        "hz_500": {
+          "type": "number",
+          "title": "500 Hz"
+        },
+        "hz_1000": {
+          "type": "number",
+          "title": "1000 Hz"
+        },
+        "hz_2000": {
+          "type": "number",
+          "title": "2000 Hz"
+        },
+        "hz_3000": {
+          "type": "number",
+          "title": "3000 Hz"
+        },
+        "hz_4000": {
+          "type": "number",
+          "title": "4000 Hz"
+        },
+        "hz_6000": {
+          "type": "number",
+          "title": "6000 Hz"
+        },
+        "hz_8000": {
+          "type": "number",
+          "title": "8000 Hz"
+        }
+      }
+    },
+    "is_default": {
+      "type": "boolean",
+      "title": "Default Profile",
+      "default": false
+    }
+  },
+  "required": [
+    "profile_name",
+    "left_ear",
+    "right_ear"
+  ]
+}
