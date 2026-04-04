@@ -53,25 +53,65 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
     await decodeAndSet(arrayBuffer, file.name);
   };
 
+  const isYouTubeUrl = (url) => {
+    return /youtube\.com\/watch|youtu\.be\/|youtube\.com\/shorts/.test(url);
+  };
+
+  const fetchYouTubeAudio = async (url) => {
+    // Use cobalt.tools public API to extract YouTube audio
+    const response = await fetch("https://api.cobalt.tools/", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url,
+        downloadMode: "audio",
+        audioFormat: "mp3",
+      }),
+    });
+
+    if (!response.ok) throw new Error("Cobalt API error");
+    const data = await response.json();
+
+    if (data.status === "error") throw new Error(data.error?.code || "Failed to extract audio");
+    if (!data.url) throw new Error("No audio URL returned");
+
+    const audioRes = await fetch(data.url);
+    if (!audioRes.ok) throw new Error("Failed to download audio stream");
+    return await audioRes.arrayBuffer();
+  };
+
   const handleUrlLoad = async () => {
     if (!urlInput.trim()) return;
     setError(null);
     setUrlLoading(true);
     try {
-      const response = await fetch(urlInput);
-      if (!response.ok) throw new Error("Failed to fetch");
-      const arrayBuffer = await response.arrayBuffer();
+      let arrayBuffer;
+      let name;
 
-      const name = urlInput.split("/").pop().split("?")[0] || "audio-from-url";
-      setFileInfo({
-        name,
-        size: (arrayBuffer.byteLength / (1024 * 1024)).toFixed(2),
-        type: "URL",
-      });
+      if (isYouTubeUrl(urlInput)) {
+        name = "youtube-audio";
+        setFileInfo({ name, size: "...", type: "YouTube" });
+        arrayBuffer = await fetchYouTubeAudio(urlInput);
+      } else {
+        const response = await fetch(urlInput);
+        if (!response.ok) throw new Error("Failed to fetch");
+        arrayBuffer = await response.arrayBuffer();
+        name = urlInput.split("/").pop().split("?")[0] || "audio-from-url";
+      }
 
+      const sizeMB = (arrayBuffer.byteLength / (1024 * 1024)).toFixed(2);
+      name = name || "audio-from-url";
+      setFileInfo({ name, size: sizeMB, type: isYouTubeUrl(urlInput) ? "YouTube" : "URL" });
       await decodeAndSet(arrayBuffer, name);
     } catch (e) {
-      setError("Could not load audio from URL. Make sure the URL is a direct audio file link and CORS is allowed.");
+      setError(
+        isYouTubeUrl(urlInput)
+          ? "Could not extract YouTube audio. Try a different video or check that it's publicly available."
+          : "Could not load audio from URL. Make sure the URL is a direct audio file link and CORS is allowed."
+      );
       setFileInfo(null);
     }
     setUrlLoading(false);
@@ -154,7 +194,7 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
                 type="url"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://example.com/audio.mp3"
+                placeholder="https://youtube.com/watch?v=... or direct audio URL"
                 className="flex-1 bg-secondary/50"
                 aria-label="Audio URL"
                 onKeyDown={(e) => { if (e.key === "Enter") handleUrlLoad(); }}
@@ -164,7 +204,7 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Paste a direct link to an MP3, WAV, or FLAC file. The server must allow cross-origin requests (CORS).
+              Supports YouTube URLs and direct MP3/WAV/FLAC links.
             </p>
           </div>
         )
