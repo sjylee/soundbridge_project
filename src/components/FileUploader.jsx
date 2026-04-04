@@ -58,8 +58,8 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
   };
 
   const fetchYouTubeAudio = async (url) => {
-    // Use cobalt.tools public API to extract YouTube audio
-    const response = await fetch("https://api.cobalt.tools/", {
+    // Use capi.3kh0.net — public cobalt instance with YouTube support
+    const response = await fetch("https://capi.3kh0.net/", {
       method: "POST",
       headers: {
         "Accept": "application/json",
@@ -69,14 +69,16 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
         url,
         downloadMode: "audio",
         audioFormat: "mp3",
+        audioBitrate: "128",
       }),
     });
 
-    if (!response.ok) throw new Error("Cobalt API error");
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
     const data = await response.json();
 
-    if (data.status === "error") throw new Error(data.error?.code || "Failed to extract audio");
-    if (!data.url) throw new Error("No audio URL returned");
+    if (data.status === "error") throw new Error(data.error?.code || data.text || "Failed to extract audio");
+    // status can be 'tunnel' or 'redirect' — both have a url field
+    if (!data.url) throw new Error("No audio URL returned from API");
 
     const audioRes = await fetch(data.url);
     if (!audioRes.ok) throw new Error("Failed to download audio stream");
