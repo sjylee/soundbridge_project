@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Upload, FileAudio, X, AlertCircle, Link, Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -58,31 +59,13 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
   };
 
   const fetchYouTubeAudio = async (url) => {
-    // Use capi.3kh0.net — public cobalt instance with YouTube support
-    const response = await fetch("https://capi.3kh0.net/", {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        url,
-        downloadMode: "audio",
-        audioFormat: "mp3",
-        audioBitrate: "128",
-      }),
-    });
-
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
-    const data = await response.json();
-
-    if (data.status === "error") throw new Error(data.error?.code || data.text || "Failed to extract audio");
-    // status can be 'tunnel' or 'redirect' — both have a url field
-    if (!data.url) throw new Error("No audio URL returned from API");
-
-    const audioRes = await fetch(data.url);
-    if (!audioRes.ok) throw new Error("Failed to download audio stream");
-    return await audioRes.arrayBuffer();
+    const response = await base44.functions.invoke('fetchYoutubeAudio', { url });
+    const { audioBase64, title, error } = response.data;
+    if (error) throw new Error(error);
+    const binary = atob(audioBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return { arrayBuffer: bytes.buffer, title };
   };
 
   const handleUrlLoad = async () => {
@@ -96,7 +79,9 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
       if (isYouTubeUrl(urlInput)) {
         name = "youtube-audio";
         setFileInfo({ name, size: "...", type: "YouTube" });
-        arrayBuffer = await fetchYouTubeAudio(urlInput);
+        const result = await fetchYouTubeAudio(urlInput);
+        arrayBuffer = result.arrayBuffer;
+        name = result.title || name;
       } else {
         const response = await fetch(urlInput);
         if (!response.ok) throw new Error("Failed to fetch");
@@ -109,11 +94,9 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
       setFileInfo({ name, size: sizeMB, type: isYouTubeUrl(urlInput) ? "YouTube" : "URL" });
       await decodeAndSet(arrayBuffer, name);
     } catch (e) {
-      setError(
-        isYouTubeUrl(urlInput)
-          ? "Could not extract YouTube audio. Try a different video or check that it's publicly available."
-          : "Could not load audio from URL. Make sure the URL is a direct audio file link and CORS is allowed."
-      );
+      setError(e.message || (isYouTubeUrl(urlInput)
+        ? "Could not extract YouTube audio. Try a different video."
+        : "Could not load audio from URL. Make sure it's a direct audio file link."));
       setFileInfo(null);
     }
     setUrlLoading(false);
