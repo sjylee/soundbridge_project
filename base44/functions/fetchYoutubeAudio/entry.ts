@@ -18,45 +18,38 @@ Deno.serve(async (req) => {
     }
     const videoId = match[1];
 
-    // Try IOS client - often bypasses YouTube restrictions
     const yt = await Innertube.create({ 
       cache: undefined,
       generate_session_locally: true,
-      client_type: 'IOS',
     });
     
-    const info = await yt.getBasicInfo(videoId, 'IOS');
-    
-    const streaming = info.streaming_data;
-    
-    const audioFormats = [
-      ...(streaming?.adaptive_formats || []),
-      ...(streaming?.formats || []),
-    ].filter(f => f.mime_type?.startsWith('audio/') && f.url);
-    
-
-    
-    if (audioFormats.length === 0) {
-      return Response.json({ 
-        error: 'YouTube is blocking server-side access. Please upload an audio file directly instead.' 
-      }, { status: 403 });
-    }
-    
-    const format = audioFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+    const info = await yt.getBasicInfo(videoId);
     const title = info.basic_info?.title || 'youtube-audio';
 
-    const audioRes = await fetch(format.url);
-    if (!audioRes.ok) {
-      return Response.json({ error: `Failed to fetch audio stream: ${audioRes.status}` }, { status: 502 });
+    // Use yt.download() which handles signature deciphering internally
+    const stream = await yt.download(videoId, {
+      type: 'audio',
+      quality: 'best',
+      format: 'any',
+    });
+
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
     }
 
-    const arrayBuffer = await audioRes.arrayBuffer();
-    const uint8 = new Uint8Array(arrayBuffer);
+    const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+    const merged = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
 
     let binary = '';
     const chunkSize = 8192;
-    for (let i = 0; i < uint8.length; i += chunkSize) {
-      binary += String.fromCharCode(...uint8.subarray(i, i + chunkSize));
+    for (let i = 0; i < merged.length; i += chunkSize) {
+      binary += String.fromCharCode(...merged.subarray(i, i + chunkSize));
     }
     const base64 = btoa(binary);
 
