@@ -1,4 +1,3 @@
-```markdown
 # SoundBridge 🎧
 
 > A clinically-inspired audio accessibility web application that personalizes sound output in real time based on an individual's hearing loss profile.
