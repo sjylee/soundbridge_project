@@ -117,7 +117,20 @@ export async function processAudio(audioBuffer, audiogramProfile, settings = {})
 
   source.start(0);
 
+  const renderStartTime = performance.now();
   const renderedBuffer = await offlineCtx.startRendering();
+  const renderEndTime = performance.now();
+
+  const renderTimeMs = renderEndTime - renderStartTime;
+  const audioDurationSec = renderedBuffer.duration;
+  const renderRatio = (audioDurationSec * 1000) / renderTimeMs;
+
+  console.log(`[SoundBridge Audio Engine]`);
+  console.log(`  Audio duration:  ${audioDurationSec.toFixed(2)}s`);
+  console.log(`  Render time:     ${renderTimeMs.toFixed(1)}ms`);
+  console.log(`  Render ratio:    ${renderRatio.toFixed(1)}x realtime`);
+  console.log(`  → Processed ${audioDurationSec.toFixed(0)}s of audio in ${renderTimeMs.toFixed(0)}ms`);
+
   return renderedBuffer;
 }
 
