@@ -21,6 +21,7 @@ export default function ProcessAudio() {
   const [fileName, setFileName] = useState("");
   const [processing, setProcessing] = useState(false);
   const [gainCurve, setGainCurve] = useState(null);
+  const [metrics, setMetrics] = useState(null);
   const [settings, setSettings] = useState({ vocalBoost: 3, bassBoost: 0, loudness: 0 });
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export default function ProcessAudio() {
 
     const result = await processAudio(originalBuffer, selectedProfile, settings);
     setProcessedBuffer(result);
+    if (result._metrics) setMetrics(result._metrics);
 
     const curve = getAppliedGainCurve(selectedProfile);
     setGainCurve(curve);
@@ -79,6 +81,7 @@ export default function ProcessAudio() {
 
     const result = await processAudio(originalBuffer, selectedProfile, settings);
     setProcessedBuffer(result);
+    if (result._metrics) setMetrics(result._metrics);
 
     const curve = getAppliedGainCurve(selectedProfile);
     setGainCurve(curve);
@@ -183,6 +186,24 @@ export default function ProcessAudio() {
                 {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 Re-process with Settings
               </Button>
+
+              {metrics && (
+                <div className="p-4 rounded-lg bg-secondary/30 border border-border/30 space-y-2">
+                  <p className="text-xs font-semibold text-foreground mb-2">⚡ Render Metrics</p>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Audio Duration</span>
+                    <span className="font-mono text-foreground">{metrics.audioDurationSec.toFixed(2)}s</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Render Time</span>
+                    <span className="font-mono text-foreground">{metrics.renderTimeMs.toFixed(1)}ms</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Render Ratio</span>
+                    <span className="font-mono text-accent">{metrics.renderRatio.toFixed(1)}x realtime</span>
+                  </div>
+                </div>
+              )}
 
               <div className="p-4 rounded-lg bg-secondary/30 border border-border/30">
                 <p className="text-xs text-muted-foreground leading-relaxed">
