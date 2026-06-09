@@ -62,9 +62,9 @@ export default function ProcessAudio() {
     // Small delay for UI responsiveness
     await new Promise((r) => setTimeout(r, 100));
 
-    const result = await processAudio(originalBuffer, selectedProfile, settings);
-    setProcessedBuffer(result);
-    if (result._metrics) setMetrics(result._metrics);
+    const { buffer, metrics: m } = await processAudio(originalBuffer, selectedProfile, settings);
+    setProcessedBuffer(buffer);
+    setMetrics(m);
 
     const curve = getAppliedGainCurve(selectedProfile);
     setGainCurve(curve);
@@ -79,9 +79,9 @@ export default function ProcessAudio() {
 
     await new Promise((r) => setTimeout(r, 100));
 
-    const result = await processAudio(originalBuffer, selectedProfile, settings);
-    setProcessedBuffer(result);
-    if (result._metrics) setMetrics(result._metrics);
+    const { buffer, metrics: m } = await processAudio(originalBuffer, selectedProfile, settings);
+    setProcessedBuffer(buffer);
+    setMetrics(m);
 
     const curve = getAppliedGainCurve(selectedProfile);
     setGainCurve(curve);

@@ -131,13 +131,7 @@ export async function processAudio(audioBuffer, audiogramProfile, settings = {})
   console.log(`  Render ratio:    ${renderRatio.toFixed(1)}x realtime`);
   console.log(`  → Processed ${audioDurationSec.toFixed(0)}s of audio in ${renderTimeMs.toFixed(0)}ms`);
 
-  renderedBuffer._metrics = {
-    audioDurationSec,
-    renderTimeMs,
-    renderRatio,
-  };
-
-  return renderedBuffer;
+  return { buffer: renderedBuffer, metrics: { audioDurationSec, renderTimeMs, renderRatio } };
 }
 
 /**
