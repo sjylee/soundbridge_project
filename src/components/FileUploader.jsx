@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Upload, FileAudio, X, AlertCircle, Link, Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -59,8 +59,16 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
   };
 
   const fetchYouTubeAudio = async (url) => {
-    const response = await base44.functions.invoke('fetchYoutubeAudio', { url });
-    const { audioBase64, title, error } = response.data;
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch('/api/fetch-youtube-audio', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify({ url }),
+    });
+    const { audioBase64, title, error } = await response.json();
     if (error) throw new Error(error);
     const binary = atob(audioBase64);
     const bytes = new Uint8Array(binary.length);
@@ -190,6 +198,9 @@ export default function FileUploader({ onFileLoaded, isLoading }) {
             </div>
             <p className="text-xs text-muted-foreground">
               Supports YouTube URLs and direct MP3/WAV/FLAC links.
+            </p>
+            <p className="text-xs text-muted-foreground/70">
+              Only use YouTube links for content you have the rights to process. Fetching audio this way isn't officially sanctioned by YouTube — use at your own risk.
             </p>
           </div>
         )
