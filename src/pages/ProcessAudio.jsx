@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AudioWaveform, Loader2, Sparkles } from "lucide-react";
@@ -30,7 +30,18 @@ export default function ProcessAudio() {
 
   const loadProfiles = async () => {
     setLoadingProfiles(true);
-    const data = await base44.entities.AudiogramProfile.list("-created_date", 50);
+    const { data, error } = await supabase
+      .from("audiogram_profiles")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      toast.error(error.message);
+      setLoadingProfiles(false);
+      return;
+    }
+
     setProfiles(data);
     const defaultProfile = data.find((p) => p.is_default) || data[0];
     if (defaultProfile) setSelectedProfileId(defaultProfile.id);

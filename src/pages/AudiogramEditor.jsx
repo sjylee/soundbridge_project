@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ const DEFAULT_EAR = {
 };
 
 export default function AudiogramEditor() {
+  const { user } = useAuth();
   const [profiles, setProfiles] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [profileName, setProfileName] = useState("");
@@ -32,7 +34,18 @@ export default function AudiogramEditor() {
 
   const loadProfiles = async () => {
     setLoading(true);
-    const data = await base44.entities.AudiogramProfile.list("-created_date", 50);
+    const { data, error } = await supabase
+      .from("audiogram_profiles")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
     setProfiles(data);
     if (data.length > 0) {
       selectProfile(data[0]);
@@ -70,13 +83,17 @@ export default function AudiogramEditor() {
       is_default: isDefault,
     };
 
-    if (selectedProfile) {
-      await base44.entities.AudiogramProfile.update(selectedProfile.id, data);
-      toast.success("Profile updated");
-    } else {
-      await base44.entities.AudiogramProfile.create(data);
-      toast.success("Profile created");
+    const { error } = selectedProfile
+      ? await supabase.from("audiogram_profiles").update(data).eq("id", selectedProfile.id)
+      : await supabase.from("audiogram_profiles").insert({ ...data, user_id: user.id });
+
+    if (error) {
+      toast.error(error.message);
+      setSaving(false);
+      return;
     }
+
+    toast.success(selectedProfile ? "Profile updated" : "Profile created");
 
     await loadProfiles();
     setSaving(false);
@@ -84,7 +101,13 @@ export default function AudiogramEditor() {
 
   const handleDelete = async () => {
     if (!selectedProfile) return;
-    await base44.entities.AudiogramProfile.delete(selectedProfile.id);
+    const { error } = await supabase.from("audiogram_profiles").delete().eq("id", selectedProfile.id);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
     toast.success("Profile deleted");
     setSelectedProfile(null);
     createNew();
